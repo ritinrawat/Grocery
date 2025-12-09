@@ -1,0 +1,183 @@
+<!-- Banners Page -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0">Banners</h4>
+  <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addBannerModal">
+    <i class="fas fa-plus me-2"></i>Add New Banner
+  </button>
+</div>
+
+<!-- Banners Grid -->
+<div class="row g-4">
+  <% banners.forEach(banner => { %>
+    <div class="col-lg-4 col-md-6">
+      <div class="card h-100">
+        <img src="<%= banner.mainBannerImage %>" class="card-img-top" alt="Banner" style="height: 200px; object-fit: cover;">
+        <div class="card-body">
+          <h6 class="card-title"><%= banner.title || 'No Title' %></h6>
+          <p class="card-text text-muted"><%= banner.description || 'No Description' %></p>
+          <p class="text-muted small">Created: <%= new Date(banner.createdAt).toLocaleDateString() %></p>
+          <div class="d-flex justify-content-between">
+            <span class="badge <%= banner.isActive ? 'bg-success' : 'bg-secondary' %>"><%= banner.isActive ? 'Active' : 'Inactive' %></span>
+            <div>
+              <button class="btn btn-sm btn-outline-primary me-2 edit-banner" 
+                data-id="<%= banner._id %>" 
+                data-title="<%= banner.title %>" 
+                data-description="<%= banner.description %>" 
+                data-active="<%= banner.isActive %>" 
+                data-mainimg="<%= banner.mainBannerImage %>" 
+                data-cardimg1="<%= banner.cardBannerImage1 %>" 
+                data-cardimg2="<%= banner.cardBannerImage2 %>" 
+                data-cardimg3="<%= banner.cardBannerImage3 %>">
+                <i class="fas fa-edit"></i> Edit
+              </button>
+              <button class="btn btn-sm btn-outline-danger delete-banner" data-id="<%= banner._id %>">
+                <i class="fas fa-trash"></i> Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% }) %>
+</div>
+
+<!-- Add Banner Modal -->
+<div class="modal fade" id="addBannerModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add New Banner</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form action="/banner" method="POST" enctype="multipart/form-data">
+          <div class="mb-3">
+            <label class="form-label">Main Banner Image</label>
+            <input type="file" name="mainBannerImage" class="form-control" accept="image/*" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Title</label>
+            <input type="text" name="title" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea name="description" class="form-control" rows="3"></textarea>
+          </div>
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Card Banner Image 1</label>
+              <input type="file" name="cardBannerImage1" class="form-control" accept="image/*">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Card Banner Image 2</label>
+              <input type="file" name="cardBannerImage2" class="form-control" accept="image/*">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Card Banner Image 3</label>
+              <input type="file" name="cardBannerImage3" class="form-control" accept="image/*">
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Banner Modal -->
+<div class="modal fade" id="editBannerModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Banner</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editBannerForm" method="POST" enctype="multipart/form-data">
+          <input type="hidden" name="_method" value="PUT">
+          <div class="mb-3">
+            <label class="form-label">Title</label>
+            <input type="text" name="title" id="editBannerTitle" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea name="description" id="editBannerDescription" class="form-control" rows="2"></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Main Banner Image</label>
+            <div id="editBannerMainImg" class="mb-2"></div>
+            <input type="file" name="mainBannerImage" class="form-control" accept="image/*">
+          </div>
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Card Banner Image 1</label>
+              <div id="editBannerCardImg1" class="mb-2"></div>
+              <input type="file" name="cardBannerImage1" class="form-control" accept="image/*">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Card Banner Image 2</label>
+              <div id="editBannerCardImg2" class="mb-2"></div>
+              <input type="file" name="cardBannerImage2" class="form-control" accept="image/*">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Card Banner Image 3</label>
+              <div id="editBannerCardImg3" class="mb-2"></div>
+              <input type="file" name="cardBannerImage3" class="form-control" accept="image/*">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Active Status</label>
+            <select name="isActive" id="editBannerActive" class="form-select">
+              <option value="true">Active</option>
+              <option value="false">Inactive</option>
+            </select>
+          </div>
+          <div class="d-flex justify-content-end">
+            <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Update</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Edit banner modal
+    const editModalEl = document.getElementById('editBannerModal');
+    const editForm = document.getElementById('editBannerForm');
+    const bsEditModal = new bootstrap.Modal(editModalEl);
+
+    document.querySelectorAll('.edit-banner').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const id = this.getAttribute('data-id');
+        document.getElementById('editBannerTitle').value = this.getAttribute('data-title') || '';
+        document.getElementById('editBannerDescription').value = this.getAttribute('data-description') || '';
+        document.getElementById('editBannerActive').value = this.getAttribute('data-active') === 'true' ? 'true' : 'false';
+
+        // Show current images
+        document.getElementById('editBannerMainImg').innerHTML = this.getAttribute('data-mainimg') ? `<img src='${this.getAttribute('data-mainimg')}' style='max-width:120px;max-height:80px;object-fit:cover;'>` : '';
+        document.getElementById('editBannerCardImg1').innerHTML = this.getAttribute('data-cardimg1') ? `<img src='${this.getAttribute('data-cardimg1')}' style='max-width:80px;max-height:60px;object-fit:cover;'>` : '';
+        document.getElementById('editBannerCardImg2').innerHTML = this.getAttribute('data-cardimg2') ? `<img src='${this.getAttribute('data-cardimg2')}' style='max-width:80px;max-height:60px;object-fit:cover;'>` : '';
+        document.getElementById('editBannerCardImg3').innerHTML = this.getAttribute('data-cardimg3') ? `<img src='${this.getAttribute('data-cardimg3')}' style='max-width:80px;max-height:60px;object-fit:cover;'>` : '';
+
+        editForm.action = `/banner/${id}`;
+        bsEditModal.show();
+      });
+    });
+
+    // Delete banner
+    document.querySelectorAll('.delete-banner').forEach(btn => {
+      btn.addEventListener('click', async function() {
+        const id = this.getAttribute('data-id');
+        if (!id) return;
+        if (!confirm('Delete this banner?')) return;
+        try {
+          const res = await fetch(`/banner/${id}`, { method: 'DELETE' });
+          if (res.ok) this.closest('.col-lg-4, .col-md-6')?.remove(); else alert('Delete failed');
+        } catch (err) { console.error(err); alert('Delete failed'); }
+      });
+    });
+  });
+</script>

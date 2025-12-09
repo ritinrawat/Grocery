@@ -1,0 +1,326 @@
+<!-- ===== Orders Page ===== -->
+<div class="container my-5">
+  <!-- Breadcrumb -->
+  <nav class="mb-4">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="#">Home</a></li>
+      <li class="breadcrumb-item"><a href="#">My Account</a></li>
+      <li class="breadcrumb-item active">My Orders</li>
+      
+    </ol>
+  </nav>
+
+  <!-- Filters -->
+  <div class="d-flex flex-wrap align-items-center justify-content-between mb-4">
+    <div class="btn-group" role="group" aria-label="order filters">
+      <button class="btn btn-sm btn-dark text-white rounded-pill px-3 filter-btn active" data-status="all">All</button>
+      <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 filter-btn" data-status="processing">Processing</button>
+      <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 filter-btn" data-status="shipped">Shipped</button>
+      <button class="btn btn-sm btn-outline-success rounded-pill px-3 filter-btn" data-status="delivered">Delivered</button>
+      <button class="btn btn-sm btn-outline-danger rounded-pill px-3 filter-btn" data-status="cancelled">Cancelled</button>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <input id="startDate" type="date" class="form-control form-control-sm" />
+      <input id="endDate" type="date" class="form-control form-control-sm" />
+      <button id="applyDateBtn" class="btn btn-sm btn-outline-primary rounded-pill">Apply</button>
+      <button id="resetDateBtn" class="btn btn-sm btn-outline-secondary rounded-pill">Reset</button>
+    </div>
+  </div>
+
+  <!-- Orders List -->
+  <div id="ordersContainer" class="d-flex flex-column gap-3">
+    <p class="text-muted text-center">Loading orders...</p>
+  </div>
+</div>
+
+<!-- ===== Order Details Modal ===== -->
+<div class="modal fade" id="orderDetailsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content rounded-4 shadow">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title">Order Details</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="orderInfo" class="mb-3"></div>
+        <div class="mb-3">
+          <label for="statusSelect" class="form-label">Update Status:</label>
+          <select id="statusSelect" class="form-select">
+            <option value="pending">Pending</option>
+            <option value="processing">Processing</option>
+            <option value="shipped">Shipped</option>
+            <option value="delivered">Delivered</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Image</th>
+                <th>Product</th>
+                <th>Subcategory</th>
+                <th>Quantity</th>
+                <th>Price</th>
+              </tr>
+            </thead>
+            <tbody id="orderProductsTable"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-success" onclick="updateOrderStatus()">Update Status</button>
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .order-card {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #eee;
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease;
+  }
+  .order-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    transform: translateY(-2px);
+  }
+  .order-status {
+    font-size: 0.85rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 20px;
+  }
+  .status-inprogress {
+    background: #fff3cd;
+    color: #856404;
+  }
+  .status-delivered {
+    background: #d1e7dd;
+    color: #0f5132;
+  }
+  .status-cancelled {
+    background: #f8d7da;
+    color: #842029;
+  }
+</style>
+
+<script>
+  let allOrders = [];
+  let selectedStartDate = null;
+  let selectedEndDate = null;
+
+  async function loadOrders() {
+    try {
+      const response = await fetch('/orders');
+      const data = await response.json();
+      allOrders = data.orders || [];
+
+      // attach filter handlers (ensure not duplicated)
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.replaceWith(btn.cloneNode(true));
+      });
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+          this.classList.add('active');
+          const status = this.getAttribute('data-status');
+          renderOrders(status);
+        });
+      });
+
+      // date filter handlers
+      const applyBtn = document.getElementById('applyDateBtn');
+      const resetBtn = document.getElementById('resetDateBtn');
+      const startInput = document.getElementById('startDate');
+      const endInput = document.getElementById('endDate');
+
+      applyBtn.addEventListener('click', () => {
+        selectedStartDate = startInput.value ? new Date(startInput.value) : null;
+        // include entire end day
+        selectedEndDate = endInput.value ? new Date(new Date(endInput.value).setHours(23,59,59,999)) : null;
+        // re-render with current active status
+        const active = document.querySelector('.filter-btn.active');
+        const status = active ? active.getAttribute('data-status') : 'all';
+        renderOrders(status);
+      });
+
+      resetBtn.addEventListener('click', () => {
+        startInput.value = '';
+        endInput.value = '';
+        selectedStartDate = null;
+        selectedEndDate = null;
+        const active = document.querySelector('.filter-btn.active');
+        const status = active ? active.getAttribute('data-status') : 'all';
+        renderOrders(status);
+      });
+
+      // initial render
+      const active = document.querySelector('.filter-btn.active');
+      const status = active ? active.getAttribute('data-status') : 'all';
+      renderOrders(status);
+    } catch (err) {
+      console.error('Error loading orders:', err);
+    }
+  }
+
+  function renderOrders(filterStatus = 'all') {
+    const container = document.getElementById('ordersContainer');
+    container.innerHTML = '';
+    const list = allOrders.filter(o => {
+      if (!filterStatus || filterStatus === 'all') return true;
+      return (o.adminStatus || 'pending') === filterStatus;
+    });
+
+    // apply date range filter if selected
+    const filteredByDate = list.filter(o => {
+      if (!selectedStartDate && !selectedEndDate) return true;
+      const created = o.createdAt ? new Date(o.createdAt) : null;
+      if (!created) return false;
+      if (selectedStartDate && created < selectedStartDate) return false;
+      if (selectedEndDate && created > selectedEndDate) return false;
+      return true;
+    });
+
+    if (filteredByDate.length === 0) {
+      container.innerHTML = `<p class="text-muted text-center">No orders found.</p>`;
+      return;
+    }
+
+    filteredByDate.forEach((order, index) => {
+      const status = (order.adminStatus || 'pending').toLowerCase();
+      const statusClass =
+        status === 'delivered'
+          ? 'status-delivered'
+          : status === 'cancelled'
+          ? 'status-cancelled'
+          : 'status-inprogress';
+
+      const firstProduct = order.products?.[0];
+      const moreCount = order.products?.length > 1 ? `+${order.products.length - 1} more` : '';
+
+      const card = document.createElement('div');
+      card.className = 'order-card';
+      card.innerHTML = `
+        <div>
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="order-status ${statusClass} text-capitalize">${order.adminStatus || 'pending'}  </span>
+                <span class="order-status ${statusClass} text-capitalize">${order.paymentMethod || ''}  </span>
+            <small class="text-muted">${new Date(order.createdAt).toLocaleDateString()}</small>
+          </div>
+          <h6 class="text-danger mb-1">Order ID: ${order.razorpayOrderId || 'N/A'}</h6>
+          <p class="mb-1 text-secondary">${firstProduct?.name || 'No product'} ${moreCount}</p>
+          <p class="fw-semibold text-dark mb-0">₹${order.amount}</p>
+        </div>
+        <button class="btn btn-sm btn-outline-dark rounded-pill" onclick="showOrderDetailsById('${order._id}')">
+          View Order
+        </button>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  let currentOrderIndex = -1;
+
+  function showOrderDetailsById(id) {
+    const index = allOrders.findIndex(o => String(o._id) === String(id));
+    if (index === -1) return;
+    showOrderDetails(index);
+  }
+
+  function showOrderDetails(index) {
+    const order = allOrders[index];
+    const info = document.getElementById('orderInfo');
+    const tbody = document.getElementById('orderProductsTable');
+    const statusSelect = document.getElementById('statusSelect');
+    console.log("Order",order)
+      if (!order) {
+        console.warn('showOrderDetails: order is null/undefined', index);
+        return;
+      }
+
+      currentOrderIndex = index;
+
+      const session = order.sessionId || {};
+      const addr = order.Address || null;
+
+      if (info) {
+        info.innerHTML = `
+          <p><strong>Order ID:</strong> ${order.razorpayOrderId || 'N/A'}</p>
+          <p><strong>AdminStatus:</strong> ${order.adminStatus || 'N/A'} <strong>Status:</strong> ${order.status || 'N/A'}</p>
+          <p><strong>Date:</strong> ${order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A'}</p>
+          <p><strong>Name:</strong> ${session.name || 'N/A'} <strong>MobileNo: </strong>${session.number || 'N/A'}</p>
+          <p><strong>Address:</strong> ${addr ? `${addr.houseAddress || ''}, ${addr.city || ''}, ${addr.state || ''} - ${addr.postalCode || ''}` : 'N/A'}</p>
+        `;
+      }
+
+      if (statusSelect) {
+        statusSelect.value = order.adminStatus || 'pending';
+      }
+
+      if (tbody) {
+        const prods = Array.isArray(order.products) ? order.products : [];
+        tbody.innerHTML = prods
+          .map(
+              (p) => `
+              <tr>
+                <td><img src="${p?.image || '/default.png'}" width="60" class="rounded"></td>
+                <td>${p?.name || 'N/A'}</td>
+                <td>${p?.subcategory && p.subcategory.name ? p.subcategory.name : ''}</td>
+                <td>${p?.quantity || 0}</td>
+                <td>₹${p?.price || 0}</td>
+              </tr>
+            `
+            )
+          .join('');
+      }
+
+    new bootstrap.Modal(document.getElementById('orderDetailsModal')).show();
+  }
+
+  async function updateOrderStatus() {
+    const statusSelect = document.getElementById('statusSelect');
+    const newStatus = statusSelect.value;
+    const order = allOrders[currentOrderIndex];
+
+    if (!order) {
+      alert('No order selected');
+      return;
+    }
+
+    try {
+      const response = await fetch(`/orders/${order._id}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ adminStatus: newStatus }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert('Order status updated successfully');
+        order.adminStatus = newStatus;
+        loadOrders(); // Reload orders to reflect changes
+        bootstrap.Modal.getInstance(document.getElementById('orderDetailsModal')).hide();
+      } else {
+        alert('Error updating status: ' + (data.message || response.status));
+      }
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      alert('Error updating order status');
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', loadOrders);
+</script>

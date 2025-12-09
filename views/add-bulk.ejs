@@ -1,0 +1,46 @@
+<!-- Bulk Subcategory with Products -->
+<div class="card shadow-sm mb-5">
+  <div class="card-header bg-primary text-white">
+    Add Subcategory with Multiple Products
+  </div>
+  <div class="card-body">
+    <form id="bulkForm" action="/subcategory/bulk" method="POST" enctype="multipart/form-data" onsubmit="return prepareBulkProducts()">
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label class="form-label">Select Category</label>
+          <select name="categoryId" class="form-select" id="categorySelect" required onchange="updateSubcategoryOptions()">
+            <option value="">Select Category</option>
+            <% categories.forEach(cat => { %>
+              <option value="<%= cat.id %>"><%= cat.name %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Select or Create Subcategory</label>
+          <select name="subcategoryId" class="form-select mb-2" id="subcategorySelect">
+            <option value="">Create New Subcategory</option>
+          </select>
+          <input type="text" name="subcategoryName" class="form-control mb-2" id="subcategoryNameInput" placeholder="New Subcategory Name">
+          <input type="file" name="subcategoryImage" class="form-control" id="subcategoryImageInput" accept="image/*">
+        </div>
+      </div>
+
+      <!-- Products List -->
+      <div id="productsArea" class="mb-3">
+        <h5 class="mb-3">Products</h5>
+        <div class="row g-2 mb-2 product-row">
+          <div class="col-md-3"><input type="text" class="form-control" placeholder="Product Name" required></div>
+          <div class="col-md-3"><input type="number" class="form-control" placeholder="Product Price" required></div>
+          <div class="col-md-4"><input type="file" name="productImages" class="form-control" accept="image/*" required></div>
+          <div class="col-md-2 d-grid"><button type="button" class="btn btn-danger" onclick="removeProductRow(this)">Remove</button></div>
+        </div>
+      </div>
+
+      <button type="button" class="btn btn-secondary mb-3" onclick="addProductRow()">+ Add Another Product</button>
+      <input type="hidden" name="products" id="productsInput">
+      <div class="text-end">
+        <button type="submit" class="btn btn-primary">Add Subcategory & Products</button>
+      </div>
+    </form>
+  </div>
+</div>

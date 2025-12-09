@@ -1,0 +1,52 @@
+<!-- Edit Subcategory Page -->
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-header">
+          <h4>Edit Subcategory: <%= subcategory.name %></h4>
+        </div>
+        <div class="card-body">
+          <!-- Edit Subcategory Form -->
+          <form action="/admin/update-subcategory/<%= subcategory._id %>" method="POST" enctype="multipart/form-data">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Subcategory Name</label>
+                  <input type="text" name="name" class="form-control" value="<%= subcategory.name %>" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Sort No</label>
+                  <select name="sortno" class="form-select" required>
+                    <option value="NO" <%= subcategory.sortno === 'NO' ? 'selected' : '' %>>No</option>
+                    <option value="1" <%= subcategory.sortno === '1' ? 'selected' : '' %>>1</option>
+                    <option value="2" <%= subcategory.sortno === '2' ? 'selected' : '' %>>2</option>
+                    <option value="3" <%= subcategory.sortno === '3' ? 'selected' : '' %>>3</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Current Image</label>
+                  <br>
+                  <img src="<%= subcategory.image %>" alt="<%= subcategory.name %>" style="width: 100px; height: 100px; object-fit: cover;">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">New Image (optional)</label>
+                  <input type="file" name="image" class="form-control" accept="image/*">
+                </div>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Update Subcategory</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

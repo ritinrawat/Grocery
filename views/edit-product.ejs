@@ -1,0 +1,85 @@
+<!-- Edit Product Page -->
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-header">
+          <h4>Edit Product: <%= product.name %></h4>
+        </div>
+        <div class="card-body">
+          <!-- Edit Product Form -->
+          <form action="/admin/update-product/<%= product._id %>" method="POST" enctype="multipart/form-data">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Product Name</label>
+                  <input type="text" name="name" class="form-control" value="<%= product.name %>" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Price</label>
+                  <input type="number" name="price" class="form-control" step="0.01" value="<%= product.price %>" required>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Description</label>
+                  <textarea name="description" class="form-control" rows="3"><%= product.description %></textarea>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Subcategory</label>
+                  <select name="subcategory" class="form-select" required>
+                    <% subcategories.forEach(sub => { %>
+                      <option value="<%= sub._id %>" <%= product.subcategory.toString() === sub._id.toString() ? 'selected' : '' %>><%= sub.name %></option>
+                    <% }) %>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label class="form-label">Current Main Image</label>
+                  <br>
+                  <img src="<%= product.mainImage || product.image || '' %>" alt="<%= product.name %>" style="width: 100px; height: 100px; object-fit: cover;">
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label class="form-label">Current Images</label>
+                  <div class="d-flex gap-2 mt-2">
+                    <% if (product.images && product.images.length) { %>
+                      <% product.images.forEach(function(t){ %>
+                        <img src="<%= t %>" alt="img" style="width: 80px; height: 80px; object-fit: cover; border-radius:6px;">
+                      <% }) %>
+                    <% } else if (product.thumbnail) { %>
+                      <img src="<%= product.thumbnail %>" alt="thumb" style="width: 80px; height: 80px; object-fit: cover; border-radius:6px;">
+                    <% } else { %>
+                      <span class="text-muted">No images</span>
+                    <% } %>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label class="form-label">New Images (optional)</label>
+                  <input type="file" name="mainImage" class="form-control mb-2" accept="image/*">
+                  <input type="file" name="thumbnailImage" class="form-control mb-2" accept="image/*">
+                  <input type="file" name="images" class="form-control mb-2" accept="image/*" multiple>
+                  <small class="text-muted">Upload multiple images. Existing images will be replaced.</small>
+                  <input type="file" name="images" class="form-control mt-2" accept="image/*" multiple>
+                </div>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Update Product</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

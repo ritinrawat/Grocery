@@ -1,0 +1,109 @@
+<!-- Users Page -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0">Users</h4>
+</div>
+
+<!-- Users Table -->
+<div class="card">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead class="table-light">
+          <tr>
+            <th>Avatar</th>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Email</th>
+            <th>Total Orders</th>
+            <th>Status</th>
+            <th>Joined Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% users.forEach(user => { %>
+            <tr>
+              <td>
+                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                  <%= user.name.charAt(0).toUpperCase() %>
+                </div>
+              </td>
+              <td><%= user.name %></td>
+              <td><%= user.number %></td>
+              <td><%= user.email %></td>
+              <td><%= orders.filter(o => o.sessionId && o.sessionId._id.toString() === user._id.toString()).length %></td>
+              <td><span class="badge bg-success">Active</span></td>
+              <td><%= new Date(user.createdAt).toLocaleDateString() %></td>
+              <td>
+                <button class="btn btn-sm btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#userDetailModal" onclick="showUserDetail('<%= user._id %>')">
+                  <i class="fas fa-eye"></i> View
+                </button>
+                <button class="btn btn-sm btn-outline-warning">
+                  <i class="fas fa-ban"></i> Block
+                </button>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- User Detail Modal -->
+<div class="modal fade" id="userDetailModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">User Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="userDetailContent">
+          <!-- Content will be populated by JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Expose server-provided users and orders to client-side safely
+  window.users = <%- JSON.stringify(users || []) %>;
+  window.orders = <%- JSON.stringify(orders || []) %>;
+
+  function showUserDetail(userId) {
+    const user = window.users.find(u => String(u._id) === String(userId));
+    if (!user) return;
+
+    const userOrders = window.orders.filter(o => {
+      const sid = o.sessionId ? (o.sessionId._id || o.sessionId) : null;
+      return sid && String(sid) === String(user._id);
+    });
+
+    const content = document.getElementById('userDetailContent');
+    content.innerHTML = `
+      <div class="row">
+        <div class="col-md-4 text-center">
+          <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2rem;">
+            ${String(user.name || '').charAt(0).toUpperCase()}
+          </div>
+          <h5>${user.name || ''}</h5>
+          <p class="text-muted">${user.email || ''}</p>
+          <p class="text-muted">${user.number || ''}</p>
+        </div>
+        <div class="col-md-8">
+          <h6>Order History</h6>
+          <ul class="list-group">
+            ${userOrders.map(order => `
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                Order ID: ${order.razorpayOrderId || 'N/A'}
+                <span class="badge bg-primary">₹${order.amount || 0}</span>
+              </li>
+            `).join('')}
+          </ul>
+        </div>
+      </div>
+    `;
+  }
+</script>

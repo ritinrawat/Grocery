@@ -1,0 +1,158 @@
+<!-- Dashboard Section -->
+<div class="row g-4 mb-4">
+  <!-- Stats Cards -->
+  <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+    <div class="card text-center">
+      <div class="card-body">
+        <div class="text-primary mb-2">
+          <i class="fas fa-tags fa-2x"></i>
+        </div>
+        <h4 class="mb-1"><%= categories.length %></h4>
+        <p class="text-muted mb-0">Total Categories</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+    <div class="card text-center">
+      <div class="card-body">
+        <div class="text-primary mb-2">
+          <i class="fas fa-list fa-2x"></i>
+        </div>
+        <h4 class="mb-1"><%= categories.reduce((sum, cat) => sum + (cat.subcategories ? cat.subcategories.length : 0), 0) %></h4>
+        <p class="text-muted mb-0">Total Subcategories</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+    <div class="card text-center">
+      <div class="card-body">
+        <div class="text-primary mb-2">
+          <i class="fas fa-box fa-2x"></i>
+        </div>
+        <h4 class="mb-1"><%= categories.reduce((sum, cat) => sum + (cat.subcategories ? cat.subcategories.reduce((s, sub) => s + (sub.products ? sub.products.length : 0), 0) : 0), 0) %></h4>
+        <p class="text-muted mb-0">Total Products</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+    <div class="card text-center">
+      <div class="card-body">
+        <div class="text-primary mb-2">
+          <i class="fas fa-users fa-2x"></i>
+        </div>
+        <h4 class="mb-1"><%= users.length %></h4>
+        <p class="text-muted mb-0">Total Users</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+    <div class="card text-center">
+      <div class="card-body">
+        <div class="text-primary mb-2">
+          <i class="fas fa-shopping-cart fa-2x"></i>
+        </div>
+        <h4 class="mb-1"><%= orders.length %></h4>
+        <p class="text-muted mb-0">Total Orders</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+    <div class="card text-center">
+      <div class="card-body">
+        <div class="text-primary mb-2">
+          <i class="fas fa-check-circle fa-2x"></i>
+        </div>
+        <h4 class="mb-1">₹<%= (typeof deliveredTotalAmount !== 'undefined' ? deliveredTotalAmount.toFixed(2) : '0.00') %></h4>
+        <p class="text-muted mb-0">Delivered Total</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+    <div class="card text-center">
+      <div class="card-body">
+        <div class="text-primary mb-2">
+          <i class="fas fa-image fa-2x"></i>
+        </div>
+        <h4 class="mb-1"><%= banners.length %></h4>
+        <p class="text-muted mb-0">Total Banners</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Category Icons Row -->
+<div class="card mb-4">
+  <div class="card-header">
+    <h5 class="mb-0">Categories</h5>
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <%categories.slice(0, 8).forEach(cat => { %>
+        <div class="col-lg-3 col-md-4 col-sm-6">
+          <div class="text-center p-3 border rounded">
+            <img src="<%= cat.image %>" alt="<%= cat.name %>" class="img-fluid mb-2" style="max-height: 60px;">
+            <h6><%= cat.name %></h6>
+          </div>
+        </div>       
+      <% }) %>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Popular Products -->
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Popular Products</h5>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <% categories.forEach(cat => { %>
+            <% if (cat.subcategories) { %>
+              <% cat.subcategories.forEach(sub => { %>
+                <% if (sub.products) { %>
+                  <% sub.products.slice(0, 4).forEach(prod => { %>
+                    <div class="col-md-6">
+                      <div class="d-flex align-items-center p-2 border rounded">
+                        <img src="<%= prod.mainImage || prod.image || '' %>" alt="<%= prod.name %>" class="img-fluid me-3" style="max-width: 60px; max-height: 60px;">
+                        <div>
+                          <h6 class="mb-1"><%= prod.name %></h6>
+                          <p class="text-primary mb-0">₹<%= prod.price %></p>
+                        </div>
+                      </div>
+                    </div>
+                  <% }) %>
+                <% } %>
+              <% }) %>
+            <% } %>
+          <% }) %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Last Orders -->
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Last Orders</h5>
+      </div>
+      <div class="card-body">
+        <% orders.slice(0, 5).forEach(order => { %>
+          <div class="d-flex align-items-center mb-3">
+            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+              <i class="fas fa-user"></i>
+            </div>
+            <div class="flex-grow-1">
+              <h6 class="mb-1"><%= order.sessionId ? order.sessionId.name : 'N/A' %></h6>
+              <p class="mb-1"><%= order.products && order.products.length > 0 ? order.products[0].name : 'No items' %></p>
+              <small class="text-muted">₹<%= order.amount %></small>
+            </div>
+            <span class="badge bg-success">Paid</span>
+          </div>
+        <% }) %>
+      </div>
+    </div>
+  </div>
+</div>

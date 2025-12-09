@@ -1,0 +1,223 @@
+<%
+  // Ensure `_products` and `_subcategories` exist when this partial is included
+  let _products = typeof products !== 'undefined' ? products : [];
+  let _subcategories = typeof subcategories !== 'undefined' ? subcategories : [];
+
+  // If not provided, try to derive from `categories` (when included inside index.ejs)
+  if ((_products.length === 0 || _subcategories.length === 0) && typeof categories !== 'undefined') {
+    categories.forEach(cat => {
+      if (cat.subcategories && Array.isArray(cat.subcategories)) {
+        cat.subcategories.forEach(sub => {
+          if (!_subcategories.find(s => String(s._id) === String(sub._id))) {
+            _subcategories.push(sub);
+          }
+          if (sub.products && Array.isArray(sub.products)) {
+            sub.products.forEach(p => {
+              const prodWithSub = Object.assign({}, p, { subcategory: sub });
+              _products.push(prodWithSub);
+            });
+          }
+        });
+      }
+    });
+  }
+%>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0">Products</h4>
+  <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
+    <i class="fas fa-plus me-2"></i>Add New Product
+  </button>
+</div>
+
+<!-- Products Table -->
+<div class="card">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead class="table-light">
+          <tr>
+            <th>Product Name</th>
+            <th>Price</th>
+            <th>Subcategory</th>
+            <th>Image</th>
+            <th>Status</th>
+            <th>Created Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% _products.forEach(prod => { %>
+            <tr>
+              <td><%= prod.name %></td>
+              <td>₹<%= prod.price %></td>
+              <td><%= (prod.subcategory && prod.subcategory.name) ? prod.subcategory.name : '—' %></td>
+              <td><img src="<%= prod.mainImage || prod.image || '' %>" alt="<%= prod.name %>" style="width: 40px; height: 40px; object-fit: cover;"></td>
+              <td><span class="badge bg-success">Active</span></td>
+              <td><%= new Date(prod.createdAt).toLocaleDateString() %></td>
+              <td>
+                <button type="button" class="btn btn-sm btn-outline-primary me-2 edit-product" 
+                  data-id="<%= prod._id %>" data-name="<%= prod.name %>" data-price="<%= prod.price %>" data-desc="<%= prod.description || '' %>" data-subcat="<%= prod.subcategory && prod.subcategory._id ? prod.subcategory._id : (prod.subcategory || '') %>" data-image="<%= prod.mainImage || prod.image || '' %>">
+                  <i class="fas fa-edit"></i> Edit
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger delete-product" data-id="<%= prod._id %>">
+                  <i class="fas fa-trash"></i> Delete
+                </button>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Add Product Modal -->
+<div class="modal fade" id="addProductModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add New Product</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form action="/submit" method="POST" enctype="multipart/form-data">
+          <div class="mb-3">
+            <label class="form-label">Product Name</label>
+            <input type="text" name="productName" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Price</label>
+            <input type="number" name="price" class="form-control" step="0.01" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea name="description" class="form-control" rows="3"></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Subcategory</label>
+            <select name="subcategory" class="form-select" required>
+              <% _subcategories.forEach(sub => { %>
+                <option value="<%= sub._id %>"><%= sub.name %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Product Image</label>
+            <input type="file" name="productImage" class="form-control" accept="image/*" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Additional Images (optional)</label>
+            <input type="file" name="images" class="form-control" accept="image/*" multiple>
+            <small class="text-muted">You can upload multiple images; first will be used if main image missing.</small>
+          </div>
+          <div class="d-flex justify-content-end">
+            <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Submit</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Product Modal -->
+<div class="modal fade" id="editProductModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Product</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editProductForm" method="POST" enctype="multipart/form-data">
+          <input type="hidden" name="_method" value="PUT">
+          <div class="mb-3">
+            <label class="form-label">Product Name</label>
+            <input type="text" name="name" id="editProductName" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Price</label>
+            <input type="number" name="price" id="editProductPrice" class="form-control" step="0.01" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea name="description" id="editProductDescription" class="form-control" rows="3"></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Subcategory</label>
+            <select name="subcategory" id="editProductSubcategory" class="form-select" required>
+              <% _subcategories.forEach(sub => { %>
+                <option value="<%= sub._id %>"><%= sub.name %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Current Image</label>
+            <div id="editProductCurrentImage" class="mb-2"></div>
+            <label class="form-label">New Main Image (optional)</label>
+            <input type="file" name="mainImage" id="editProductMainImage" class="form-control" accept="image/*">
+            <label class="form-label mt-2">New Images (optional)</label>
+            <input type="file" name="images" id="editProductImages" class="form-control" accept="image/*" multiple>
+          </div>
+          <div class="d-flex justify-content-end">
+            <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Update</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Delete handlers
+    document.querySelectorAll('.delete-product').forEach(btn => {
+      btn.addEventListener('click', async function() {
+        const id = this.getAttribute('data-id');
+        if (!id) return;
+        if (!confirm('Delete this product?')) return;
+        try {
+          const res = await fetch(`/product/${id}`, { method: 'DELETE' });
+          if (res.ok) {
+            this.closest('tr')?.remove();
+          } else {
+            const txt = await res.text();
+            alert('Delete failed: ' + (txt || res.status));
+          }
+        } catch (err) {
+          console.error('Delete error', err);
+          alert('Delete failed');
+        }
+      });
+    });
+
+    // Edit handlers
+    const editModalEl = document.getElementById('editProductModal');
+    const editForm = document.getElementById('editProductForm');
+    const bsEditModal = new bootstrap.Modal(editModalEl);
+
+    document.querySelectorAll('.edit-product').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const id = this.getAttribute('data-id');
+        const name = this.getAttribute('data-name');
+        const price = this.getAttribute('data-price');
+        const desc = this.getAttribute('data-desc');
+        const subcat = this.getAttribute('data-subcat');
+        const image = this.getAttribute('data-image');
+
+        document.getElementById('editProductName').value = name || '';
+        document.getElementById('editProductPrice').value = price || 0;
+        document.getElementById('editProductDescription').value = desc || '';
+        document.getElementById('editProductSubcategory').value = subcat || '';
+
+        const currentImageDiv = document.getElementById('editProductCurrentImage');
+        currentImageDiv.innerHTML = image ? `<img src="${image}" style="max-width:120px;max-height:80px;object-fit:cover;">` : '';
+
+        editForm.action = `/product/${id}`;
+        bsEditModal.show();
+      });
+    });
+  });
+</script>
