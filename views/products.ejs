@@ -92,11 +92,11 @@
           </div>
           <div class="mb-3">
             <label class="form-label">Description</label>
-            <textarea name="description" class="form-control" rows="3"></textarea>
+            <textarea name="description" class="ck-editor" class="form-control" rows="3"></textarea>
           </div>
           <div class="mb-3">
             <label class="form-label">Subcategory</label>
-            <select name="subcategory" class="form-select" required>
+            <select name="subcategory"  class="form-select" required>
               <% _subcategories.forEach(sub => { %>
                 <option value="<%= sub._id %>"><%= sub.name %></option>
               <% }) %>
@@ -108,7 +108,7 @@
           </div>
           <div class="mb-3">
             <label class="form-label">Additional Images (optional)</label>
-            <input type="file" name="images" class="form-control" accept="image/*" multiple>
+            <input type="file" name="images"  class="form-control" accept="image/*" multiple>
             <small class="text-muted">You can upload multiple images; first will be used if main image missing.</small>
           </div>
           <div class="d-flex justify-content-end">
@@ -142,7 +142,7 @@
           </div>
           <div class="mb-3">
             <label class="form-label">Description</label>
-            <textarea name="description" id="editProductDescription" class="form-control" rows="3"></textarea>
+            <textarea name="description"  class="ck-editor" id="editProductDescription" class="form-control" rows="3"></textarea>
           </div>
           <div class="mb-3">
             <label class="form-label">Subcategory</label>
@@ -171,6 +171,20 @@
 </div>
 
 <script>
+
+document.querySelectorAll(".ck-editor").forEach((el) => {
+      ClassicEditor
+        .create(el, {
+          toolbar: [
+            'bold','italic','underline','link',
+            'bulletedList','numberedList',
+            'blockQuote','undo','redo'
+          ]
+        })
+        .catch(error => {
+          console.error(error);
+        });
+    });
   document.addEventListener('DOMContentLoaded', function() {
     // Delete handlers
     document.querySelectorAll('.delete-product').forEach(btn => {
