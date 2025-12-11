@@ -7,8 +7,8 @@ const storage = new CloudinaryStorage({
   cloudinary,
   params: (req, file) => ({
     folder: "blinkit-admin",  // You can rename folder anytime
-    allowed_formats: ["jpg", "jpeg", "png", "webp"],
-    public_id: `${Date.now()}-${file.originalname}`
+    allowed_formats: ["jpg", "jpeg", "png", "webp", "avif"],
+    public_id: `${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9]/g, '_')}`
   }),
 });
 
