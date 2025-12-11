@@ -1,19 +1,18 @@
-const multer = require('multer');
-const { v4: uuidv4 } = require('uuid'); // generate unique IDs
-const path = require('path');
-const unique = uuidv4();
-// Multer storage setup
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, './public/images/uploads'); // upload location
-  },
-  filename: function (req, file, cb) {
-    const unique = uuidv4(); // generate unique name
-    cb(null, unique + path.extname(file.originalname)); // e.g. "abc123.png"
-  }
+const multer = require("multer");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const cloudinary = require("../config/cloudinary");
+
+// Cloudinary Storage
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: (req, file) => ({
+    folder: "blinkit-admin",  // You can rename folder anytime
+    allowed_formats: ["jpg", "jpeg", "png", "webp"],
+    public_id: `${Date.now()}-${file.originalname}`
+  }),
 });
 
-// Create upload instance
-const upload = multer({ storage: storage });
+// Multer Middleware
+const upload = multer({ storage });
 
 module.exports = upload;

@@ -84,18 +84,18 @@ exports.renderForm = async (req, res) => {
 
 exports.submitData = async (req, res) => {
     try {
-        // Accept fields from different forms. "subcategory" may be an id (from products form).
         let { categoryName, sortno, subcategoryName, productName, productPrice, subcategory: subcategoryId, description } = req.body;
 
-        // Get uploaded file filenames
-        const categoryImage = req.files && req.files.categoryImage ? '/images/uploads/' + req.files.categoryImage[0].filename : '';
-        const subcategoryImage = req.files && req.files.subcategoryImage ? '/images/uploads/' + req.files.subcategoryImage[0].filename : '';
-        // product main image: accept either productImage or mainImage field
-        const productMainImage = req.files && (req.files.productImage || req.files.mainImage) ? '/images/uploads/' + ((req.files.productImage && req.files.productImage[0]) ? req.files.productImage[0].filename : req.files.mainImage[0].filename) : '';
-        // images (array) may be uploaded as 'images' or 'thumbnails' or single thumbnailImage
-        const imagesFiles = req.files && req.files.images ? req.files.images.map(f => '/images/uploads/' + f.filename) : (req.files && req.files.thumbnails ? req.files.thumbnails.map(f => '/images/uploads/' + f.filename) : (req.files && req.files.thumbnailImage ? ['/images/uploads/' + req.files.thumbnailImage[0].filename] : []));
+        // === Cloudinary URLs instead of local paths ===
+        const categoryImage = req.files && req.files.categoryImage ? req.files.categoryImage[0].path : '';
+        const subcategoryImage = req.files && req.files.subcategoryImage ? req.files.subcategoryImage[0].path : '';
+        const productMainImage = req.files && (req.files.productImage || req.files.mainImage) ? 
+            (req.files.productImage ? req.files.productImage[0].path : req.files.mainImage[0].path) : '';
+        const imagesFiles = req.files && req.files.images ? req.files.images.map(f => f.path) : 
+            (req.files && req.files.thumbnails ? req.files.thumbnails.map(f => f.path) : 
+            (req.files && req.files.thumbnailImage ? [req.files.thumbnailImage[0].path] : []));
 
-        // Normalize and guard
+        // Normalize text
         if (typeof categoryName === 'string') categoryName = categoryName.trim().toLowerCase();
         if (typeof sortno === 'string') sortno = sortno.trim().toLowerCase();
         if (typeof subcategoryName === 'string') subcategoryName = subcategoryName.trim().toLowerCase();
@@ -104,69 +104,54 @@ exports.submitData = async (req, res) => {
         let category = null;
         let subcategory = null;
 
-        // If a subcategory id was supplied (product form), use that
         if (subcategoryId) {
             subcategory = await Subcategory.findById(subcategoryId);
-            if (!subcategory) {
-                // invalid id — continue to try name-based creation if provided
-                subcategory = null;
-            } else {
-                category = await Category.findById(subcategory.category);
-            }
+            if (!subcategory) subcategory = null;
+            else category = await Category.findById(subcategory.category);
         }
 
-        // If a categoryName is provided, find or create category
         if (!category && categoryName) {
             let found = await Category.findOne({ name: categoryName });
             if (!found) {
                 found = await Category.create({
                     name: categoryName,
-                    image: categoryImage || '',
+                    image: categoryImage,
                     sortno: sortno === 'NO' ? 'NO' : (Number(sortno) || 0),
                 });
-            } else {
-                // update sortno if provided
-                if (sortno) {
-                    found.sortno = sortno === 'NO' ? 'NO' : (Number(sortno) || found.sortno);
-                    await found.save();
-                }
+            } else if (sortno) {
+                found.sortno = sortno === 'NO' ? 'NO' : (Number(sortno) || found.sortno);
+                await found.save();
             }
             category = found;
         }
 
-        // If subcategory not resolved yet and subcategoryName provided, find or create under category
         if (!subcategory && subcategoryName) {
-            if (!category) {
-                // If no category was provided, try to find subcategory by name alone
-                subcategory = await Subcategory.findOne({ name: subcategoryName });
-            } else {
-                subcategory = await Subcategory.findOne({ name: subcategoryName, category: category._id });
-            }
+            subcategory = category ? 
+                await Subcategory.findOne({ name: subcategoryName, category: category._id }) : 
+                await Subcategory.findOne({ name: subcategoryName });
 
             if (!subcategory && category) {
-                subcategory = await Subcategory.create({ name: subcategoryName, category: category._id, image: subcategoryImage || '' });
+                subcategory = await Subcategory.create({ name: subcategoryName, category: category._id, image: subcategoryImage });
             }
         }
 
-        // Accept price field named either productPrice or price
         if (!productPrice && typeof req.body.price !== 'undefined') productPrice = req.body.price;
 
-        // Only create a product if productName is provided
         if (productName) {
-            // Ensure we have a subcategory to attach to — if not, try creating one under category
             if (!subcategory) {
-                if (!category) {
-                    // No category or subcategory info; cannot create product
-                    return res.status(400).send('Missing category/subcategory for product');
-                }
-                // create a default subcategory named 'general' if none provided
+                if (!category) return res.status(400).send('Missing category/subcategory for product');
                 subcategory = await Subcategory.findOne({ name: 'general', category: category._id });
-                if (!subcategory) {
-                    subcategory = await Subcategory.create({ name: 'general', category: category._id, image: '' });
-                }
+                if (!subcategory) subcategory = await Subcategory.create({ name: 'general', category: category._id, image: '' });
             }
 
-            await Product.create({ name: productName, price: productPrice || 0, description: description || '', mainImage: productMainImage || '', images: imagesFiles, subcategory: subcategory._id });
+            await Product.create({
+                name: productName,
+                price: productPrice || 0,
+                description: description || '',
+                mainImage: productMainImage,
+                images: imagesFiles,
+                subcategory: subcategory._id
+            });
         }
 
         return res.redirect('/');
@@ -175,6 +160,7 @@ exports.submitData = async (req, res) => {
         return res.status(500).send('Error submitting data');
     }
 };
+
 exports.getJsonData = async (req, res) => {
     try {
         const categories = await Category.find().lean();
@@ -189,9 +175,17 @@ exports.getJsonData = async (req, res) => {
 
                         const productsMapped = products.map(product => {
                             const imgs = Array.isArray(product.images) ? product.images : [];
-                            const mainRaw = product.mainImage || (imgs.length ? imgs[0] : product.image || '');
-                            const main = mainRaw ? (mainRaw.startsWith('http') ? mainRaw : `${process.env.BASE_URL}${mainRaw}`) : '';
-                            const imagesFull = imgs.map(i => i ? (i.startsWith('http') ? i : `${process.env.BASE_URL}${i}`) : '').filter(Boolean);
+
+                            // Main Image priority
+                            const mainRaw =
+                                product.mainImage ||
+                                (imgs.length ? imgs[0] : product.image || "");
+
+                            // No BASE_URL added
+                            const main = mainRaw || "";
+
+                            // Image Array (no BASE_URL)
+                            const imagesFull = imgs.filter(Boolean);
 
                             return {
                                 id: product._id,
@@ -205,7 +199,7 @@ exports.getJsonData = async (req, res) => {
                         return {
                             id: sub._id,
                             subcategoryName: sub.name,
-                            subcategoryImage: `${process.env.BASE_URL}${sub.image}`,
+                            subcategoryImage: sub.image || "",
                             products: productsMapped
                         };
                     })
@@ -214,7 +208,7 @@ exports.getJsonData = async (req, res) => {
                 return {
                     id: category._id,
                     categoryName: category.name,
-                    categoryImage: `${process.env.BASE_URL}${category.image}`,
+                    categoryImage: category.image || "",
                     sortno: category.sortno,
                     subcategories: subcatWithProducts
                 };
@@ -227,86 +221,125 @@ exports.getJsonData = async (req, res) => {
         res.status(500).json({ error: "Something went wrong" });
     }
 };
+
 exports.getSubcategories = async (req, res) => {
   try {
     const categoryId = req.params.id;
     console.log("Category ID:", categoryId);
 
-    // Find the category first (to get its name)
+    // Find category
     const category = await Category.findById(categoryId).lean();
     if (!category) {
       return res.status(404).json({ error: "Category not found" });
     }
 
-    // Find subcategories for this category
+    // Find all subcategories
     const subcategories = await Subcategory.find({ category: categoryId }).lean();
 
-        // For each subcategory, get its products
-        const subcatWithProducts = await Promise.all(
-            subcategories.map(async (sub) => {
-                const products = await Product.find({ subcategory: sub._id }).lean();
+    const subcatWithProducts = await Promise.all(
+      subcategories.map(async (sub) => {
+        const products = await Product.find({ subcategory: sub._id }).lean();
 
-                const productsMapped = products.map(product => {
-                    const imgs = Array.isArray(product.images) ? product.images : [];
-                    const mainRaw = product.mainImage || (imgs.length ? imgs[0] : product.image || '');
-                    const main = mainRaw ? (mainRaw.startsWith('http') ? mainRaw : `${process.env.BASE_URL}${mainRaw}`) : '';
-                    const imagesFull = imgs.map(i => i ? (i.startsWith('http') ? i : `${process.env.BASE_URL}${i}`) : '').filter(Boolean);
-                    return {
-                        id: product._id,
-                        productName: product.name,
-                        productPrice: product.price,
-                        productImage: main,
-                        images: imagesFull
-                    };
-                });
+        const productsMapped = products.map((product) => {
+          const imgs = Array.isArray(product.images) ? product.images : [];
 
-                return {
-                    id: sub._id,
-                    name: sub.name,
-                    image: `${process.env.BASE_URL}${sub.image}`,
-                    products: productsMapped
-                };
-            })
-        );
+          // MAIN IMAGE
+          const mainRaw =
+            product.mainImage ||
+            (imgs.length ? imgs[0] : product.image || "");
 
-    // Send response with category name and sort number
+          // If image starts with "http" → Cloudinary → return direct
+          // Else → local image → add BASE_URL
+          const main = mainRaw
+            ? mainRaw.startsWith("http")
+              ? mainRaw
+              : `${process.env.BASE_URL}${mainRaw}`
+            : "";
+
+          // Process images array
+          const imagesFull = imgs
+            .map((i) =>
+              i
+                ? i.startsWith("http")
+                  ? i
+                  : `${process.env.BASE_URL}${i}`
+                : ""
+            )
+            .filter(Boolean);
+
+          return {
+            id: product._id,
+            productName: product.name,
+            productPrice: product.price,
+            productImage: main,
+            images: imagesFull,
+          };
+        });
+
+        return {
+          id: sub._id,
+          name: sub.name,
+          // Subcategory image
+          image: sub.image.startsWith("http")
+            ? sub.image
+            : `${process.env.BASE_URL}${sub.image}`,
+          products: productsMapped,
+        };
+      })
+    );
+
+    // Send response
     res.json({
       categoryName: category.name,
       sortno: category.sortno,
       subcategories: subcatWithProducts,
     });
   } catch (error) {
+    console.error("ERROR:", error);
     res.status(500).json({ error: "Failed to fetch subcategories" });
   }
 };
+
 exports.getProductsBySubcategory = async (req, res) => {
-   
     try {
         const { id } = req.query;
-        // Find the subcategory
         console.log("Subcategory ID:", id);
-      
-        const subcategory = await Subcategory.findById(id);
-        if (!subcategory) return res.status(404).json({ error: "Subcategory not found" });
 
-        // Find products linked to this subcategory
+        // Find subcategory
+        const subcategory = await Subcategory.findById(id);
+        if (!subcategory) {
+            return res.status(404).json({ error: "Subcategory not found" });
+        }
+
+        // Find products linked to subcategory
         const products = await Product.find({ subcategory: id }).lean();
 
         const formattedProducts = products.map(prod => {
             const imgs = Array.isArray(prod.images) ? prod.images : [];
-            const mainRaw = prod.mainImage || (imgs.length ? imgs[0] : prod.image || '');
-            const main = mainRaw ? (mainRaw.startsWith('http') ? mainRaw : `${process.env.BASE_URL}${mainRaw}`) : '';
-            const imagesFull = imgs.map(i => i ? (i.startsWith('http') ? i : `${process.env.BASE_URL}${i}`) : '').filter(Boolean);
+
+            // Main image logic (Cloudinary-safe)
+            const mainRaw =
+                prod.mainImage ||
+                (imgs.length ? imgs[0] : prod.image || '');
+
+            const main = mainRaw
+                ? (mainRaw.startsWith('http') ? mainRaw : `${process.env.BASE_URL}${mainRaw}`)
+                : '';
+
+            // All images array (Cloudinary-safe)
+            const imagesFull =
+                imgs
+                    .map(i =>
+                        i ? (i.startsWith('http') ? i : `${process.env.BASE_URL}${i}`) : ''
+                    )
+                    .filter(Boolean);
 
             return {
                 id: prod._id,
                 name: prod.name,
                 price: prod.price,
-                // legacy single-image compat
-                image: main,
-                // product description
+                image: main, // single image support
                 description: prod.description || '',
-                // proper images array
                 images: imagesFull
             };
         });
@@ -315,41 +348,54 @@ exports.getProductsBySubcategory = async (req, res) => {
             subcategory: {
                 id: subcategory._id,
                 name: subcategory.name,
-                image: subcategory.image ? (subcategory.image.startsWith('http') ? subcategory.image : `${process.env.BASE_URL}${subcategory.image}`) : ''
+                image: subcategory.image
+                    ? (subcategory.image.startsWith('http')
+                        ? subcategory.image
+                        : `${process.env.BASE_URL}${subcategory.image}`)
+                    : ''
             },
             products: formattedProducts
         });
+
     } catch (error) {
+        console.error("Error:", error);
         res.status(500).json({ error: "Failed to fetch products for subcategory" });
     }
 };
+
     // Update Category
 exports.updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, sortno } = req.body;
+
     // Prepare update data
     const updateData = {};
     if (name) updateData.name = name;
     if (sortno) updateData.sortno = sortno === "NO" ? "NO" : Number(sortno);
-    // If a new image is uploaded
+
+    // If a new image is uploaded via Cloudinary
     if (req.files && req.files.image && req.files.image[0]) {
-      updateData.image = `/images/uploads/${req.files.image[0].filename}`;
+      updateData.image = req.files.image[0].path; // Cloudinary URL
     }
-        const updated = await Category.findByIdAndUpdate(id, updateData, { new: true });
-        if (!updated) return res.status(404).json({ error: "Category not found" });
-        // If the request comes from a browser form (HTML), redirect back to admin page.
-        const accept = req.headers.accept || '';
-        if (accept.includes('text/html')) {
-            return res.redirect('/');
-        }
-        // Otherwise return JSON (API client)
-        res.json(updated);
+
+    const updated = await Category.findByIdAndUpdate(id, updateData, { new: true });
+    if (!updated) return res.status(404).json({ error: "Category not found" });
+
+    // Redirect for browser form
+    const accept = req.headers.accept || '';
+    if (accept.includes('text/html')) {
+      return res.redirect('/');
+    }
+
+    // JSON response for API
+    res.json(updated);
   } catch (error) {
     console.error("Update error:", error);
     res.status(500).json({ error: "Update failed" });
   }
 };
+
     // Delete Category
     exports.deleteCategory = async (req, res) => {
         try {
@@ -369,7 +415,7 @@ exports.updateCategory = async (req, res) => {
             const { name } = req.body;
             const updatedata={}
                if (req.files && req.files.image && req.files.image[0]) {
-      updatedata.image = `/images/uploads/${req.files.image[0].filename}`;
+      updatedata.image = req.files.image[0].path
     }
             if(name) updatedata.name=name
             const updated = await Subcategory.findByIdAndUpdate(id,updatedata, { new: true });
@@ -407,23 +453,24 @@ exports.updateProduct = async (req, res) => {
                         // Files: support new names (mainImage, thumbnailImage, images[]) and legacy 'image'
                         if (req.files) {
                             if (req.files.mainImage && req.files.mainImage[0]) {
-                                updatedata.mainImage = `/images/uploads/${req.files.mainImage[0].filename}`;
+                                
+                                updatedata.mainImage = req.files.mainImage[0].filename;
                             }
                             // support uploaded arrays in 'images' or legacy 'thumbnails' or single 'thumbnailImage'
                             if (req.files.images && Array.isArray(req.files.images) && req.files.images.length) {
-                                updatedata.images = req.files.images.map(f => `/images/uploads/${f.filename}`);
+                                updatedata.images = req.files.images.map(f => f.filename);
                                 // set legacy thumbnail to first image for compatibility
                                 updatedata.thumbnail = updatedata.images[0];
                             } else if (req.files.thumbnails && Array.isArray(req.files.thumbnails) && req.files.thumbnails.length) {
-                                updatedata.images = req.files.thumbnails.map(f => `/images/uploads/${f.filename}`);
+                                updatedata.images = req.files.thumbnails.map(f => f.filename);
                                 updatedata.thumbnail = updatedata.images[0];
                             } else if (req.files.thumbnailImage && req.files.thumbnailImage[0]) {
-                                updatedata.images = [`/images/uploads/${req.files.thumbnailImage[0].filename}`];
+                                updatedata.images = [req.files.thumbnailImage[0].filename];
                                 updatedata.thumbnail = updatedata.images[0];
                             }
                             // backward compatibility
                             if (!updatedata.mainImage && req.files.image && req.files.image[0]) {
-                                updatedata.mainImage = `/images/uploads/${req.files.image[0].filename}`;
+                                updatedata.mainImage = req.files.image[0].filename;
                                 updatedata.image = updatedata.mainImage;
                             }
                         }
@@ -486,7 +533,7 @@ exports.updateProduct = async (req, res) => {
             // Create new subcategory
             subcategory = await Subcategory.create({
                 name: subcategoryName.trim().toLowerCase(),
-                image: '/images/uploads/' + req.files.subcategoryImage[0].filename,
+                image: req.files.subcategoryImage[0].filename,
                 category: category._id
             });
         }
@@ -496,7 +543,7 @@ exports.updateProduct = async (req, res) => {
             for (let i = 0; i < products.length; i++) {
             const prod = products[i];
             if (!prod.name || !prod.price || !req.files.productImages[i]) continue;
-            const mainImg = '/images/uploads/' + req.files.productImages[i].filename;
+            const mainImg =  req.files.productImages[i].filename;
             const product = await Product.create({
                 name: prod.name.trim().toLowerCase(),
                 price: prod.price,
@@ -520,47 +567,52 @@ exports.updateProduct = async (req, res) => {
 
 // Banner management
 exports.renderBannerForm = async (req, res) => {
-    try {
-        const banner = await Banner.findOne().lean();
-        const categories = await Category.find().lean();
-        let users = await User.find().lean();
-        let orders = await Order.find().populate('sessionId').lean();
-        const banners = await Banner.find().lean();
+  try {
+    const banner = await Banner.findOne().lean();
+    const categories = await Category.find().lean();
+    let users = await User.find().lean();
+    let orders = await Order.find().populate('sessionId').lean();
+    const banners = await Banner.find().lean();
 
-        const data = await Promise.all(
-            categories.map(async (category) => {
-                const subcategories = await Subcategory.find({ category: category._id }).lean();
-                const subcatWithProducts = await Promise.all(
-                    subcategories.map(async (sub) => {
-                        const products = await Product.find({ subcategory: sub._id }).lean();
-                        return { ...sub, products };
-                    })
-                );
-                return { ...category, subcategories: subcatWithProducts };
-            })
+    const data = await Promise.all(
+      categories.map(async (category) => {
+        const subcategories = await Subcategory.find({ category: category._id }).lean();
+        const subcatWithProducts = await Promise.all(
+          subcategories.map(async (sub) => {
+            const products = await Product.find({ subcategory: sub._id }).lean();
+            return { ...sub, products };
+          })
         );
+        return { ...category, subcategories: subcatWithProducts };
+      })
+    );
 
-        if (banner) {
-            banner.mainBannerImage = `${process.env.BASE_URL}${banner.mainBannerImage}`;
-            banner.cardBannerImage1 = banner.cardBannerImage1 ? `${process.env.BASE_URL}${banner.cardBannerImage1}` : "";
-            banner.cardBannerImage2 = banner.cardBannerImage2 ? `${process.env.BASE_URL}${banner.cardBannerImage2}` : "";
-            banner.cardBannerImage3 = banner.cardBannerImage3 ? `${process.env.BASE_URL}${banner.cardBannerImage3}` : "";
-        }
-
-        // Normalize IDs to strings
-        users = users.map(u => ({ ...u, _id: u._id.toString() }));
-        orders = orders.map(o => ({
-            ...o,
-            _id: o._id.toString(),
-            sessionId: o.sessionId ? { ...o.sessionId, _id: o.sessionId._id ? o.sessionId._id.toString() : (o.sessionId._id || o.sessionId).toString ? (o.sessionId._id || o.sessionId).toString() : o.sessionId } : null
-        }));
-
-        res.render("index", { banner, categories: data, users, orders, banners });
-    } catch (error) {
-        console.error("Error loading banner:", error);
-        res.status(500).send("Error loading banner");
+    // Fix images for Cloudinary (no prefix needed)
+    if (banner) {
+      banner.mainBannerImage = banner.mainBannerImage || "";
+      banner.cardBannerImage1 = banner.cardBannerImage1 || "";
+      banner.cardBannerImage2 = banner.cardBannerImage2 || "";
+      banner.cardBannerImage3 = banner.cardBannerImage3 || "";
     }
+
+    // Normalize IDs
+    users = users.map(u => ({ ...u, _id: u._id.toString() }));
+
+    orders = orders.map(o => ({
+      ...o,
+      _id: o._id.toString(),
+      sessionId: o.sessionId
+        ? { ...o.sessionId, _id: o.sessionId._id.toString() }
+        : null
+    }));
+
+    res.render("index", { banner, categories: data, users, orders, banners });
+  } catch (error) {
+    console.error("Error loading banner:", error);
+    res.status(500).send("Error loading banner");
+  }
 };
+
 
 exports.uploadBanner = async (req, res) => {
     try {
@@ -576,19 +628,19 @@ exports.uploadBanner = async (req, res) => {
 
         // Update images only if new image uploaded
         if (req.files.mainBannerImage) {
-            banner.mainBannerImage = '/images/uploads/' + req.files.mainBannerImage[0].filename;
+            banner.mainBannerImage =   req.files.mainBannerImage[0].filename;
         }
 
         if (req.files.cardBannerImage1) {
-            banner.cardBannerImage1 = '/images/uploads/' + req.files.cardBannerImage1[0].filename;
+            banner.cardBannerImage1 =   req.files.cardBannerImage1[0].filename;
         }
 
         if (req.files.cardBannerImage2) {
-            banner.cardBannerImage2 = '/images/uploads/' + req.files.cardBannerImage2[0].filename;
+            banner.cardBannerImage2 =   req.files.cardBannerImage2[0].filename;
         }
 
         if (req.files.cardBannerImage3) {
-            banner.cardBannerImage3 = '/images/uploads/' + req.files.cardBannerImage3[0].filename;
+            banner.cardBannerImage3 =   req.files.cardBannerImage3[0].filename;
         }
 
         // Update text fields
@@ -695,16 +747,16 @@ exports.updateBanner = async (req, res) => {
     if (typeof isActive !== 'undefined') banner.isActive = isActive === 'true';
 
     if (req.files && req.files.mainBannerImage) {
-      banner.mainBannerImage = '/images/uploads/' + req.files.mainBannerImage[0].filename;
+      banner.mainBannerImage =   req.files.mainBannerImage[0].filename;
     }
     if (req.files && req.files.cardBannerImage1) {
-      banner.cardBannerImage1 = '/images/uploads/' + req.files.cardBannerImage1[0].filename;
+      banner.cardBannerImage1 =   req.files.cardBannerImage1[0].filename;
     }
     if (req.files && req.files.cardBannerImage2) {
-      banner.cardBannerImage2 = '/images/uploads/' + req.files.cardBannerImage2[0].filename;
+      banner.cardBannerImage2 =   req.files.cardBannerImage2[0].filename;
     }
     if (req.files && req.files.cardBannerImage3) {
-      banner.cardBannerImage3 = '/images/uploads/' + req.files.cardBannerImage3[0].filename;
+      banner.cardBannerImage3 =   req.files.cardBannerImage3[0].filename;
     }
 
     await banner.save();
