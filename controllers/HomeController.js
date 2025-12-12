@@ -45,33 +45,30 @@ exports.getBanner = async (req, res) => {
     console.log("Fetching banner");
 
     const banner = await Banner.findOne({ isActive: true }).sort({ createdAt: -1 });
-  
-console.log("Banner data:", banner);
+
+    console.log("Banner data:", banner);
+
     if (banner) {
+      // Return Cloudinary URLs directly without modifying them
       const updatedBanner = {
         ...banner.toObject(),
-        mainBannerImage: banner.mainBannerImage?.startsWith("http")
-          ? banner.mainBannerImage
-          : `${process.env.BASE_URL}${banner.mainBannerImage}`,
-        cardBannerImage1: banner.cardBannerImage1?.startsWith("http")
-          ? banner.cardBannerImage1
-          : `${process.env.BASE_URL}${banner.cardBannerImage1}`,
-        cardBannerImage2: banner.cardBannerImage2?.startsWith("http")
-          ? banner.cardBannerImage2
-          : `${process.env.BASE_URL}${banner.cardBannerImage2}`,
-        cardBannerImage3: banner.cardBannerImage3?.startsWith("http")
-          ? banner.cardBannerImage3
-          : `${process.env.BASE_URL}${banner.cardBannerImage3}`,
+        mainBannerImage: banner.mainBannerImage,
+        cardBannerImage1: banner.cardBannerImage1,
+        cardBannerImage2: banner.cardBannerImage2,
+        cardBannerImage3: banner.cardBannerImage3
       };
-      res.status(200).json(updatedBanner);
-    } else {
-      res.status(200).json(null);
+
+      return res.status(200).json(updatedBanner);
     }
+
+    return res.status(200).json(null);
+
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Error fetching banner" });
+    return res.status(500).json({ message: "Error fetching banner" });
   }
 };
+
 
 // exports.sortProducts=async(req,res)=>{
 //   try{

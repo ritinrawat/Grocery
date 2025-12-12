@@ -243,29 +243,15 @@ exports.getSubcategories = async (req, res) => {
         const productsMapped = products.map((product) => {
           const imgs = Array.isArray(product.images) ? product.images : [];
 
-          // MAIN IMAGE
+          // MAIN IMAGE (Cloudinary directly)
           const mainRaw =
             product.mainImage ||
             (imgs.length ? imgs[0] : product.image || "");
 
-          // If image starts with "http" → Cloudinary → return direct
-          // Else → local image → add BASE_URL
-          const main = mainRaw
-            ? mainRaw.startsWith("http")
-              ? mainRaw
-              : `${process.env.BASE_URL}${mainRaw}`
-            : "";
+          const main = mainRaw || "";
 
-          // Process images array
-          const imagesFull = imgs
-            .map((i) =>
-              i
-                ? i.startsWith("http")
-                  ? i
-                  : `${process.env.BASE_URL}${i}`
-                : ""
-            )
-            .filter(Boolean);
+          // PRODUCT IMAGES ARRAY
+          const imagesFull = imgs.filter(Boolean);
 
           return {
             id: product._id,
@@ -279,10 +265,7 @@ exports.getSubcategories = async (req, res) => {
         return {
           id: sub._id,
           name: sub.name,
-          // Subcategory image
-          image: sub.image.startsWith("http")
-            ? sub.image
-            : `${process.env.BASE_URL}${sub.image}`,
+          image: sub.image, // Cloudinary URL directly
           products: productsMapped,
         };
       })
@@ -294,6 +277,7 @@ exports.getSubcategories = async (req, res) => {
       sortno: category.sortno,
       subcategories: subcatWithProducts,
     });
+
   } catch (error) {
     console.error("ERROR:", error);
     res.status(500).json({ error: "Failed to fetch subcategories" });
@@ -306,7 +290,7 @@ exports.getProductsBySubcategory = async (req, res) => {
         console.log("Subcategory ID:", id);
 
         // Find subcategory
-        const subcategory = await Subcategory.findById(id);
+        const subcategory = await Subcategory.findById(id).lean();
         if (!subcategory) {
             return res.status(404).json({ error: "Subcategory not found" });
         }
@@ -317,29 +301,20 @@ exports.getProductsBySubcategory = async (req, res) => {
         const formattedProducts = products.map(prod => {
             const imgs = Array.isArray(prod.images) ? prod.images : [];
 
-            // Main image logic (Cloudinary-safe)
-            const mainRaw =
+            // Main image (Cloudinary URL directly)
+            const main =
                 prod.mainImage ||
                 (imgs.length ? imgs[0] : prod.image || '');
 
-            const main = mainRaw
-                ? (mainRaw.startsWith('http') ? mainRaw : `${process.env.BASE_URL}${mainRaw}`)
-                : '';
-
-            // All images array (Cloudinary-safe)
-            const imagesFull =
-                imgs
-                    .map(i =>
-                        i ? (i.startsWith('http') ? i : `${process.env.BASE_URL}${i}`) : ''
-                    )
-                    .filter(Boolean);
+            // Images array (Cloudinary direct)
+            const imagesFull = imgs.filter(Boolean);
 
             return {
                 id: prod._id,
                 name: prod.name,
                 price: prod.price,
-                image: main, // single image support
-                description: prod.description || '',
+                image: main || "",
+                description: prod.description || "",
                 images: imagesFull
             };
         });
@@ -348,11 +323,7 @@ exports.getProductsBySubcategory = async (req, res) => {
             subcategory: {
                 id: subcategory._id,
                 name: subcategory.name,
-                image: subcategory.image
-                    ? (subcategory.image.startsWith('http')
-                        ? subcategory.image
-                        : `${process.env.BASE_URL}${subcategory.image}`)
-                    : ''
+                image: subcategory.image || ""
             },
             products: formattedProducts
         });
@@ -362,6 +333,7 @@ exports.getProductsBySubcategory = async (req, res) => {
         res.status(500).json({ error: "Failed to fetch products for subcategory" });
     }
 };
+
 
     // Update Category
 exports.updateCategory = async (req, res) => {
