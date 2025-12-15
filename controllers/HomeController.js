@@ -15,12 +15,9 @@ exports.getLatestProducts = async (req, res) => {
       const obj = item.toObject();
 
       const rawMain = obj.mainImage || (obj.images && obj.images.length ? obj.images[0] : obj.image || '');
-      const mainImageUrl = rawMain
-        ? rawMain.startsWith('http')
-          ? rawMain
-          : `${process.env.BASE_URL}${rawMain}`
-        : '';
-
+      const mainImageUrl =  rawMain.startsWith('http') 
+      
+        
       const imagesArray = Array.isArray(obj.images) ? obj.images : [];
       const imagesFull = imagesArray.map((img) => (img && img.startsWith('http') ? img : `${process.env.BASE_URL}${img}`));
 
