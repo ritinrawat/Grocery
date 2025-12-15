@@ -285,53 +285,49 @@ exports.getSubcategories = async (req, res) => {
 };
 
 exports.getProductsBySubcategory = async (req, res) => {
-    try {
-        const { id } = req.query;
-        console.log("Subcategory ID:", id);
+  try {
+    const { id } = req.query;
+    console.log("Subcategory ID:", id);
 
-        // Find subcategory
-        const subcategory = await Subcategory.findById(id).lean();
-        if (!subcategory) {
-            return res.status(404).json({ error: "Subcategory not found" });
-        }
-
-        // Find products linked to subcategory
-        const products = await Product.find({ subcategory: id }).lean();
-
-        const formattedProducts = products.map(prod => {
-            const imgs = Array.isArray(prod.images) ? prod.images : [];
-
-            // Main image (Cloudinary URL directly)
-            const main =
-                prod.mainImage ||
-                (imgs.length ? imgs[0] : prod.image || '');
-
-            // Images array (Cloudinary direct)
-            const imagesFull = imgs.filter(Boolean);
-
-            return {
-                id: prod._id,
-                name: prod.name,
-                price: prod.price,
-                image: main || "",
-                description: prod.description || "",
-                images: imagesFull
-            };
-        });
-
-        res.json({
-            subcategory: {
-                id: subcategory._id,
-                name: subcategory.name,
-                image: subcategory.image || ""
-            },
-            products: formattedProducts
-        });
-
-    } catch (error) {
-        console.error("Error:", error);
-        res.status(500).json({ error: "Failed to fetch products for subcategory" });
+    const subcategory = await Subcategory.findById(id).lean();
+    if (!subcategory) {
+      return res.status(404).json({ error: "Subcategory not found" });
     }
+
+    const products = await Product.find({ subcategory: id }).lean();
+
+    const formattedProducts = products.map(prod => {
+      const imgs = Array.isArray(prod.images) ? prod.images : [];
+
+      // ✅ EXACTLY like subcategory.image (already full URL)
+      const main =
+        prod.mainImage ||
+        prod.thumbnail ||
+        (imgs.length ? imgs[0] : "");
+
+      return {
+        id: prod._id,
+        name: prod.name,
+        price: prod.price,
+        image: main,              // FULL CLOUDINARY URL
+        description: prod.description || "",
+        images: imgs              // FULL CLOUDINARY URLs
+      };
+    });
+
+    res.json({
+      subcategory: {
+        id: subcategory._id,
+        name: subcategory.name,
+        image: subcategory.image  // already full URL
+      },
+      products: formattedProducts
+    });
+
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: "Failed to fetch products for subcategory" });
+  }
 };
 
 
