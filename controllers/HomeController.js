@@ -4,38 +4,16 @@ const Banner = require("../models/banner");
 
 exports.getLatestProducts = async (req, res) => {
   try {
-    console.log("Fetching latest products");
-
-    const latestProducts = await Product.find()
+    const products = await Product.find()
       .sort({ createdAt: -1 })
       .limit(7);
 
-    // Build full URLs for main image and images array, keep `image` for compatibility
-    const updatedProducts = latestProducts.map((item) => {
-      const obj = item.toObject();
-
-      const rawMain = obj.mainImage || (obj.images && obj.images.length ? obj.images[0] : obj.image || '');
-      const mainImageUrl =  rawMain.startsWith('http')
-      
-        
-      const imagesArray = Array.isArray(obj.images) ? obj.images : [];
-      const imagesFull = imagesArray.map((img) => (img && img.startsWith('http')));
-
-      return {
-        ...obj,
-        mainImage: mainImageUrl,
-        images: imagesFull,
-        // keep `image` for older consumers (point to mainImage)
-        image: mainImageUrl,
-      };
-    });
-
-    res.status(200).json(updatedProducts);
-  } catch (error) {
-    console.error(error);
+    res.status(200).json(products);
+  } catch (err) {
     res.status(500).json({ message: "Error fetching latest products" });
   }
 };
+
 
 exports.getBanner = async (req, res) => {
   try {
