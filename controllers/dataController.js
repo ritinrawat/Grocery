@@ -586,24 +586,17 @@ exports.updateBanner = async (req, res) => {
     const banner = await Banner.findById(req.params.id);
     if (!banner) return res.status(404).send("Banner not found");
 
-    const upload = async (file) => {
-      const result = await cloudinary.uploader.upload(file.path, {
-        folder: "blinkit-admin/banners",
-      });
-      return result.secure_url; // ✅ ONLY THIS
-    };
-
     if (req.files?.mainBannerImage)
-      banner.mainBannerImage = await upload(req.files.mainBannerImage[0]);
+      banner.mainBannerImage = req.files.mainBannerImage[0].path;
 
     if (req.files?.cardBannerImage1)
-      banner.cardBannerImage1 = await upload(req.files.cardBannerImage1[0]);
+      banner.cardBannerImage1 = req.files.cardBannerImage1[0].path;
 
     if (req.files?.cardBannerImage2)
-      banner.cardBannerImage2 = await upload(req.files.cardBannerImage2[0]);
+      banner.cardBannerImage2 = req.files.cardBannerImage2[0].path;
 
     if (req.files?.cardBannerImage3)
-      banner.cardBannerImage3 = await upload(req.files.cardBannerImage3[0]);
+      banner.cardBannerImage3 = req.files.cardBannerImage3[0].path;
 
     await banner.save();
     res.redirect("/");
@@ -612,6 +605,7 @@ exports.updateBanner = async (req, res) => {
     res.status(500).send("Banner update failed");
   }
 };
+
 exports.renderEditCategory = async (req, res) => {
     try {
         const { id } = req.params;
