@@ -17,11 +17,8 @@ exports.getLatestProducts = async (req, res) => {
 exports.getBanner = async (req, res) => {
   try {
     console.log("Fetching banner");
-
     const banner = await Banner.findOne({ isActive: true }).sort({ createdAt: -1 });
-
     console.log("Banner data:", banner);
-
     if (banner) {
       // Return Cloudinary URLs directly without modifying them
       const updatedBanner = {
