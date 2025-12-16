@@ -14,31 +14,31 @@ exports.getLatestProducts = async (req, res) => {
   }
 };
 
-exports.getBanner = async (req, res) => {
+exports.updateBanner = async (req, res) => {
   try {
-    console.log("Fetching banner");
-    const banner = await Banner.findOne({ isActive: true }).sort({ createdAt: -1 });
-    console.log("Banner data:", banner);
-    if (banner) {
-      // Return Cloudinary URLs directly without modifying them
-      const updatedBanner = {
-        ...banner.toObject(),
-        mainBannerImage: banner.mainBannerImage,
-        cardBannerImage1: banner.cardBannerImage1,
-        cardBannerImage2: banner.cardBannerImage2,
-        cardBannerImage3: banner.cardBannerImage3
-      };
+    const banner = await Banner.findById(req.params.id);
+    if (!banner) return res.status(404).send("Banner not found");
 
-      return res.status(200).json(updatedBanner);
-    }
+    if (req.files?.mainBannerImage)
+      banner.mainBannerImage = req.files.mainBannerImage[0].path;
 
-    return res.status(200).json(null);
+    if (req.files?.cardBannerImage1)
+      banner.cardBannerImage1 = req.files.cardBannerImage1[0].path;
 
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: "Error fetching banner" });
+    if (req.files?.cardBannerImage2)
+      banner.cardBannerImage2 = req.files.cardBannerImage2[0].path;
+
+    if (req.files?.cardBannerImage3)
+      banner.cardBannerImage3 = req.files.cardBannerImage3[0].path;
+
+    await banner.save();
+    res.redirect("/");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Banner update failed");
   }
 };
+
 
 
 // exports.sortProducts=async(req,res)=>{
