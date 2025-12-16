@@ -410,53 +410,55 @@ exports.updateCategory = async (req, res) => {
    
    
 exports.updateProduct = async (req, res) => {
-        try {
-            const { id } = req.params;
-                        const { name, price, description } = req.body;
-                        const updatedata = {};
-                        if (typeof name !== 'undefined') updatedata.name = name;
-                        if (typeof price !== 'undefined') updatedata.price = price;
-                        if (typeof description !== 'undefined') updatedata.description = description;
+    try {
+        const { id } = req.params;
+        const { name, price, description } = req.body;
+        const updatedata = {};
+        if (typeof name !== 'undefined') updatedata.name = name;
+        if (typeof price !== 'undefined') updatedata.price = price;
+        if (typeof description !== 'undefined') updatedata.description = description;
 
-                        // Files: support new names (mainImage, thumbnailImage, images[]) and legacy 'image'
-                        if (req.files) {
-                            if (req.files.mainImage && req.files.mainImage[0]) {
-                                
-                                updatedata.mainImage = req.files.mainImage[0].filename;
-                            }
-                            // support uploaded arrays in 'images' or legacy 'thumbnails' or single 'thumbnailImage'
-                            if (req.files.images && Array.isArray(req.files.images) && req.files.images.length) {
-                                updatedata.images = req.files.images.map(f => f.filename);
-                                // set legacy thumbnail to first image for compatibility
-                                updatedata.thumbnail = updatedata.images[0];
-                            } else if (req.files.thumbnails && Array.isArray(req.files.thumbnails) && req.files.thumbnails.length) {
-                                updatedata.images = req.files.thumbnails.map(f => f.filename);
-                                updatedata.thumbnail = updatedata.images[0];
-                            } else if (req.files.thumbnailImage && req.files.thumbnailImage[0]) {
-                                updatedata.images = [req.files.thumbnailImage[0].filename];
-                                updatedata.thumbnail = updatedata.images[0];
-                            }
-                            // backward compatibility
-                            if (!updatedata.mainImage && req.files.image && req.files.image[0]) {
-                                updatedata.mainImage = req.files.image[0].filename;
-                                updatedata.image = updatedata.mainImage;
-                            }
-                        }
+        // Files: support new names (mainImage, thumbnailImage, images[]) and legacy 'image'
+        if (req.files) {
+            if (req.files.mainImage && req.files.mainImage[0]) {
+                // ✅ save Cloudinary URL instead of filename
+                updatedata.mainImage = req.files.mainImage[0].path;
+            }
 
-                        const updated = await Product.findByIdAndUpdate(id, updatedata, { new: true });
-                        if (!updated) return res.status(404).json({ error: "Product not found" });
+            if (req.files.images && Array.isArray(req.files.images) && req.files.images.length) {
+                updatedata.images = req.files.images.map(f => f.path); // Cloudinary URLs
+                updatedata.thumbnail = updatedata.images[0]; // legacy compatibility
+            } else if (req.files.thumbnails && Array.isArray(req.files.thumbnails) && req.files.thumbnails.length) {
+                updatedata.images = req.files.thumbnails.map(f => f.path);
+                updatedata.thumbnail = updatedata.images[0];
+            } else if (req.files.thumbnailImage && req.files.thumbnailImage[0]) {
+                updatedata.images = [req.files.thumbnailImage[0].path];
+                updatedata.thumbnail = updatedata.images[0];
+            }
 
-                        // If the request came from a browser form, redirect back to admin
-                        const accept = req.headers.accept || '';
-                        if (accept.includes('text/html')) {
-                            return res.redirect('/');
-                        }
-
-                        res.json(updated);
-        } catch (error) {
-            res.status(500).json({ error: "Update failed" });
+            // backward compatibility
+            if (!updatedata.mainImage && req.files.image && req.files.image[0]) {
+                updatedata.mainImage = req.files.image[0].path;
+                updatedata.image = updatedata.mainImage;
+            }
         }
-    };
+
+        const updated = await Product.findByIdAndUpdate(id, updatedata, { new: true });
+        if (!updated) return res.status(404).json({ error: "Product not found" });
+
+        // If the request came from a browser form, redirect back to admin
+        const accept = req.headers.accept || '';
+        if (accept.includes('text/html')) {
+            return res.redirect('/');
+        }
+
+        res.json(updated);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Update failed" });
+    }
+};
+
 
     // Delete Product
     exports.deleteProduct = async (req, res) => {
