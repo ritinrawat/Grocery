@@ -22,7 +22,7 @@ exports.addToCart = async (req, res) => {
                 name: product.name,
                 price: product.price,
                 // prefer new mainImage when available
-                image: `${process.env.BASE_URL}${product.mainImage || (product.images && product.images[0]) || product.image || ''}`,
+                image:product.mainImage,
                 quantity: 1
             });
         }

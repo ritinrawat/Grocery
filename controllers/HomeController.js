@@ -14,35 +14,35 @@ exports.getLatestProducts = async (req, res) => {
   }
 };
 
+const CLOUDINARY_BASE =
+  `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload/`;
 
 exports.getBanner = async (req, res) => {
   try {
-    console.log("Fetching banner");
+    const banner = await Banner.findOne({ isActive: true }).lean();
+    if (!banner) return res.json(null);
 
-    const banner = await Banner.findOne({ isActive: true }).sort({ createdAt: -1 });
+    res.json({
+      ...banner,
+      mainBannerImage: banner.mainBannerImage
+        ? CLOUDINARY_BASE + banner.mainBannerImage
+        : "",
+      cardBannerImage1: banner.cardBannerImage1
+        ? CLOUDINARY_BASE + banner.cardBannerImage1
+        : "",
+      cardBannerImage2: banner.cardBannerImage2
+        ? CLOUDINARY_BASE + banner.cardBannerImage2
+        : "",
+      cardBannerImage3: banner.cardBannerImage3
+        ? CLOUDINARY_BASE + banner.cardBannerImage3
+        : "",
+    });
 
-    console.log("Banner data:", banner);
-
-    if (banner) {
-      // Return Cloudinary URLs directly without modifying them
-      const updatedBanner = {
-        ...banner.toObject(),
-        mainBannerImage: banner.mainBannerImage,
-        cardBannerImage1: banner.cardBannerImage1,
-        cardBannerImage2: banner.cardBannerImage2,
-        cardBannerImage3: banner.cardBannerImage3
-      };
-
-      return res.status(200).json(updatedBanner);
-    }
-
-    return res.status(200).json(null);
-
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: "Error fetching banner" });
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching banner" });
   }
 };
+
 
 
 // exports.sortProducts=async(req,res)=>{
