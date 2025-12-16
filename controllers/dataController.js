@@ -1,6 +1,7 @@
 // Get all products for a given subcategory ID
+
 // Get all subcategories (and their products) for a given category
-const cloudinary = require("../multer/cloudinary");
+
 const Category = require("../models/category");
 const Subcategory = require("../models/subcategory");
 const Product = require("../models/product");
@@ -622,6 +623,7 @@ exports.uploadBanner = async (req, res) => {
     }
 };
 
+
 exports.renderEditCategory = async (req, res) => {
     try {
         const { id } = req.params;
@@ -696,53 +698,34 @@ exports.updateBanner = async (req, res) => {
   try {
     const { id } = req.params;
     const { title, description, isActive } = req.body;
-
     const banner = await Banner.findById(id);
-    if (!banner) return res.status(404).send("Banner not found");
+    if (!banner) return res.status(404).send('Banner not found');
 
-    if (title !== undefined) banner.title = title;
-    if (description !== undefined) banner.description = description;
-    if (isActive !== undefined) banner.isActive = isActive === "true";
+    if (typeof title !== 'undefined') banner.title = title;
+    if (typeof description !== 'undefined') banner.description = description;
+    if (typeof isActive !== 'undefined') banner.isActive = isActive === 'true';
 
-    // helper function
-    const uploadToCloudinary = async (file) => {
-      const result = await cloudinary.uploader.upload(file.path, {
-        folder: "blinkit-admin/banners",
-      });
-      return result.secure_url; // ✅ FULL CLOUDINARY URL
-    };
-
-    if (req.files?.mainBannerImage) {
-      banner.mainBannerImage = await uploadToCloudinary(
-        req.files.mainBannerImage[0]
-      );
+    if (req.files && req.files.mainBannerImage) {
+      banner.mainBannerImage =   req.files.mainBannerImage[0].filename;
     }
-
-    if (req.files?.cardBannerImage1) {
-      banner.cardBannerImage1 = await uploadToCloudinary(
-        req.files.cardBannerImage1[0]
-      );
+    if (req.files && req.files.cardBannerImage1) {
+      banner.cardBannerImage1 =   req.files.cardBannerImage1[0].filename;
     }
-
-    if (req.files?.cardBannerImage2) {
-      banner.cardBannerImage2 = await uploadToCloudinary(
-        req.files.cardBannerImage2[0]
-      );
+    if (req.files && req.files.cardBannerImage2) {
+      banner.cardBannerImage2 =   req.files.cardBannerImage2[0].filename;
     }
-
-    if (req.files?.cardBannerImage3) {
-      banner.cardBannerImage3 = await uploadToCloudinary(
-        req.files.cardBannerImage3[0]
-      );
+    if (req.files && req.files.cardBannerImage3) {
+      banner.cardBannerImage3 =   req.files.cardBannerImage3[0].filename;
     }
 
     await banner.save();
-    res.redirect("/");
+    res.redirect('/');
   } catch (err) {
-    console.error("Update banner error:", err);
-    res.status(500).send("Error updating banner");
+    console.error('Update banner error:', err);
+    res.status(500).send('Error updating banner');
   }
 };
+
 exports.deleteBanner = async (req, res) => {
   try {
     const { id } = req.params;
