@@ -22,8 +22,8 @@ exports.searchProduct = async (req, res) => {
       id: p._id,  // send productId
       name: p.name,
       price: p.price,
-      image: `${process.env.BASE_URL}${p.mainImage}`,
-      images: p.images.map(img => img.startsWith('http') ? img : `${process.env.BASE_URL}${img}`),
+      image: p.mainImage,
+      images: p.images.map(img => img.startsWith('http')),
       subcategory: p.subcategory,
       discription: p.description,
     }));
