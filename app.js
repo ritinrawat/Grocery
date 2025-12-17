@@ -12,7 +12,7 @@ require("dotenv").config();
 const cors = require("cors");
 const app = express();
 app.use(cors({
-  origin: "https://groceryfrontend-za4k.onrender.com",
+  origin: ["http://localhost:5173", "http://192.168.29.121:5173"],
   credentials: true
 }));
 
@@ -46,8 +46,6 @@ app.use("/payment",paymentRoutes)
 app.use("/homeproducts",homeRoutes)
 
 // Start Server
-const PORT = process.env.PORT || 5000;
-
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
