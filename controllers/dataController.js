@@ -603,6 +603,9 @@ exports.uploadBanner = async (req, res) => {
         if (req.files.cardBannerImage2) {
             banner.cardBannerImage2 = req.files.cardBannerImage2[0].path;
         }
+          if (req.files.cardBannerImage3) {
+            banner.cardBannerImage3 = req.files.cardBannerImage3[0].path;
+        }
         // Update text fields
         banner.title = title || banner.title;
         banner.description = description || banner.description;
