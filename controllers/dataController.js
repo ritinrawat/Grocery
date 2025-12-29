@@ -585,49 +585,45 @@ exports.renderBannerForm = async (req, res) => {
 
 
 exports.uploadBanner = async (req, res) => {
-    try {
-        const { title, description, isActive } = req.body;
-        // Get existing banner (should be only one)
-        let banner = await Banner.findOne();
-       // If no banner exists, create empty one first
-        if (!banner) {
-            banner = new Banner({});
-        }
-        // Update images only if new image uploaded
-        if (req.files.mainBannerImage) {
-            banner.mainBannerImage = req.files.mainBannerImage[0].path;
-        }
-        if (req.files.cardBannerImage1) {
-            banner.cardBannerImage1 = req.files.cardBannerImage1[0].path;
-        }
-        if (req.files.cardBannerImage2) {
-            banner.cardBannerImage2 = req.files.cardBannerImage2[0].path;
-        }
-          if (req.files.cardBannerImage3) {
-            banner.cardBannerImage3 = req.files.cardBannerImage3[0].path;
-        }
-        // Update text fields
-        banner.title = title || banner.title;
-        banner.description = description || banner.description;
-        banner.isActive = isActive === 'true';
+  try {
+    const { title, description, isActive } = req.body;
 
-        // Save updated banner
-        await banner.save();
+    let banner = await Banner.findOne().sort({ createdAt: -1 });
+    if (!banner) banner = new Banner({});
 
-        // Handle redirect for EJS form
-        const accept = req.headers.accept || '';
-        if (accept.includes('text/html')) {
-            return res.redirect('/');
-        }
-
-        res.json(banner);
-
-    } catch (error) {
-        console.error("Error uploading banner:", error);
-        res.status(500).json({ error: "Failed to upload banner" });
+    if (req.files?.mainBannerImage) {
+      banner.mainBannerImage = req.files.mainBannerImage[0].path;
     }
-};
+    if (req.files?.cardBannerImage1) {
+      banner.cardBannerImage1 = req.files.cardBannerImage1[0].path;
+    }
+    if (req.files?.cardBannerImage2) {
+      banner.cardBannerImage2 = req.files.cardBannerImage2[0].path;
+    }
+    if (req.files?.cardBannerImage3) {
+      banner.cardBannerImage3 = req.files.cardBannerImage3[0].path;
+    }
 
+    banner.title = title ?? banner.title;
+    banner.description = description ?? banner.description;
+    banner.isActive = isActive === "true" || isActive === true;
+
+    await banner.save();
+
+    if (req.headers.accept?.includes("text/html")) {
+      return res.redirect("/");
+    }
+
+    res.json({
+      success: true,
+      banner
+    });
+
+  } catch (error) {
+    console.error("Banner upload error:", error);
+    res.status(500).json({ error: "Banner upload failed" });
+  }
+};
 
 exports.renderEditCategory = async (req, res) => {
     try {
