@@ -20,12 +20,7 @@ router.put('/banner/:id', upload.fields([
   { name: 'cardBannerImage2', maxCount: 1 },
   { name: 'cardBannerImage3', maxCount: 1 }
 ]), adminController.updateBanner);
-router.post('/banner/:id', upload.fields([
-  { name: 'mainBannerImage', maxCount: 1 },
-  { name: 'cardBannerImage1', maxCount: 1 },
-  { name: 'cardBannerImage2', maxCount: 1 },
-  { name: 'cardBannerImage3', maxCount: 1 }
-]), adminController.updateBanner);
+
 router.delete('/banner/:id', adminController.deleteBanner);
 
 router.get("/", adminController.renderForm);
