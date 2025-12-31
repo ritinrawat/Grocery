@@ -14,7 +14,7 @@ router.post('/banner', upload.fields([
 ]), adminController.uploadBanner);
 
 // Banner update and delete
-router.put('/banner/:id', upload.fields([
+router.post('/banner/:id', upload.fields([
   { name: 'mainBannerImage', maxCount: 1 },
   { name: 'cardBannerImage1', maxCount: 1 },
   { name: 'cardBannerImage2', maxCount: 1 },
