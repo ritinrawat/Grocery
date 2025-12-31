@@ -589,6 +589,7 @@ exports.uploadBanner = async (req, res) => {
     const { title, description, isActive } = req.body;
 
     let banner = await Banner.findOne().sort({ createdAt: -1 });
+    console.log("banner",banner)
     if (!banner) banner = new Banner({});
 
     if (req.files?.mainBannerImage) {
