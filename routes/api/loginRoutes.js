@@ -22,9 +22,12 @@ body("name")
   .matches(/^[A-Za-z\s]+$/)
   .withMessage("Name must contain only letters and spaces"),
     body('number').isLength({min:10}).withMessage("Invalid Number")
+ 
   
   ],
-  userController.registerUser
+  userController.registerUser,
+  
+
 );
 router.post("/login",[
  body('email').isEmail().withMessage('Invalid Email'),

@@ -64,6 +64,7 @@ exports.registerUser = async (req, res) => {
     const { email, password, name, number } = req.body;
 
     let user = await userModel.findOne({ email });
+    console.log("heloo")
 
     if (!user) {
       // Password will be hashed automatically by pre-save hook

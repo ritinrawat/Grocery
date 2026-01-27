@@ -11,10 +11,7 @@ const cookieParser=require('cookie-parser')
 require("dotenv").config();
 const cors = require("cors");
 const app = express();
-app.use(cors({
-  origin: "https://groceryfrontend-za4k.onrender.com",
-  credentials: true
-}));
+app.use(cors());
 
 // MongoDB Connection
 require('./config/db')()
