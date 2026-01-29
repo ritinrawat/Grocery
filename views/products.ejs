@@ -53,7 +53,7 @@
               <td>₹<%= prod.price %></td>
               <td><%= (prod.subcategory && prod.subcategory.name) ? prod.subcategory.name : '—' %></td>
               <td><img src="<%= prod.mainImage || prod.image || '' %>" alt="<%= prod.name %>" style="width: 40px; height: 40px; object-fit: cover;"></td>
-              <td><span class="badge bg-success">Active</span></td>
+            
               <td><%= new Date(prod.createdAt).toLocaleDateString() %></td>
               <td>
                 <button type="button" class="btn btn-sm btn-outline-primary me-2 edit-product" 
