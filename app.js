@@ -12,7 +12,7 @@ require("dotenv").config();
 const cors = require("cors");
 const app = express();
 app.use(cors({
-  origin: "http://localhost:5000",
+  origin: "https://groceryfrontend-za4k.onrender.com/",
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
 }));
